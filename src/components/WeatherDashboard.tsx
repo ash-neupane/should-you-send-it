@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import WeatherChart from './WeatherChart';
 import LocationSearch from './LocationSearch';
 import { fetchWeatherData } from '../api/WeatherApi';
+import '../styles/WeatherDashboard.css'; // Import the CSS file
 
 interface Location {
   lat: number;
@@ -81,8 +82,11 @@ const WeatherDashboard: React.FC = () => {
 
   return (
     <div className="weather-dashboard">
-      <h1>Weather Forecast</h1>
-      <LocationSearch onLocationChange={handleLocationChange} />
+      <h1 className="title">Which Mountain are you thinking about?</h1>
+      <LocationSearch
+        onLocationChange={handleLocationChange}
+        defaultLocation={location}
+      />
       {isLoading && <p>Loading weather data...</p>}
       {error && <p className="error">Error: {error}</p>}
       {weatherData && <WeatherChart data={weatherData} />}

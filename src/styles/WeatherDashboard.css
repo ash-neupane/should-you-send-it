@@ -1,0 +1,29 @@
+.weather-dashboard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.error {
+    color: red;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .weather-dashboard {
+        padding: 0.5rem;
+    }
+
+    .title {
+        font-size: 1.2rem;
+    }
+}
