@@ -1,0 +1,53 @@
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background-color: #4285f4;
+  }
+  
+  .logo-container {
+    display: flex;
+    align-items: center;
+  }
+  
+  .logo {
+    width: 80px;
+    height: auto;
+  }
+  
+  .nav-bar {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .nav-links {
+    list-style: none;
+    display: flex;
+    gap: 50px;
+    margin: 0;
+    padding: 0;
+  }
+  
+  .nav-links li {
+    font-size: 18px;
+  }
+  
+  .nav-links a {
+    text-decoration: none;
+    color: #4285f4; /* Same blue as the banner */
+    background-color: white; /* Makes the button white */
+    font-weight: bold;
+    padding: 10px 20px;
+    border-radius: 5px;
+    transition: all 0.3s ease;
+    border: 2px solid white;
+  }
+  
+  .nav-links a:hover {
+    background-color: #357ae8;
+    color: white;
+    border-color: #4285f4;
+  }
+  

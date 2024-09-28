@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Plot from 'react-plotly.js';
+import '../styles/WeatherChart.css';
 
 interface WeatherPeriod {
   condition: string;
@@ -25,6 +26,26 @@ interface WeatherChartProps {
 
 const WeatherChart: React.FC<WeatherChartProps> = ({ data }) => {
   const [isCelsius, setIsCelsius] = useState(false);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [chartDimensions, setChartDimensions] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (chartRef.current) {
+        const containerWidth = chartRef.current.offsetWidth;
+        setChartDimensions({
+          width: containerWidth,
+          height: window.innerHeight * 0.3  // 30% of viewport height
+        });
+      }
+    };
+  
+    window.addEventListener('resize', updateDimensions);
+    updateDimensions();
+  
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
   const limitedData = data.days.slice(0, 3);
   const times: string[] = [];
   const temperatures: number[] = [];
@@ -33,13 +54,10 @@ const WeatherChart: React.FC<WeatherChartProps> = ({ data }) => {
   const windSpeeds: number[] = [];
   const windDirections: number[] = [];
 
-  const convertTemp = (temp: number) => isCelsius ? (temp - 32) * 5/9 : temp;
-  const formatTemp = (temp: number) => `${Math.round(convertTemp(temp))}°${isCelsius ? 'C' : 'F'}`;
-
-  limitedData.forEach((day, index) => {
-    ['am', 'pm', 'night'].forEach(period => {
-      if (day[period as keyof Pick<DayData, 'am' | 'pm' | 'night'>]) {
-        const periodData = day[period as keyof Pick<DayData, 'am' | 'pm' | 'night'>] as WeatherPeriod;
+  limitedData.forEach((day) => {
+    ['am', 'pm', 'night'].forEach((period) => {
+      const periodData = day[period as keyof Pick<DayData, 'am' | 'pm' | 'night'>];
+      if (periodData) {
         times.push(`${day.date} ${period.toUpperCase()}`);
         temperatures.push(periodData.temp);
         dayLabels.push(`${day.date} ${period.toUpperCase()}`);
@@ -50,7 +68,10 @@ const WeatherChart: React.FC<WeatherChartProps> = ({ data }) => {
     });
   });
 
-  const getWeatherIcon = (condition: string) => {
+  const convertTemp = (temp: number): number => isCelsius ? (temp - 32) * 5/9 : temp;
+  const formatTemp = (temp: number): string => `${Math.round(convertTemp(temp))}°${isCelsius ? 'C' : 'F'}`;
+
+  const getWeatherIcon = (condition: string): string => {
     const iconMap: { [key: string]: string } = {
       'cloudy': '☁️',
       'rainy': '🌧️',
@@ -62,129 +83,105 @@ const WeatherChart: React.FC<WeatherChartProps> = ({ data }) => {
     return iconMap[condition.toLowerCase()] || '🌤️';
   };
 
-  const getWindDirection = (degree: number) => {
+  const getWindDirection = (degree: number): string => {
     const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
     return directions[Math.round(degree / 45) % 8];
   };
 
-  const styles = {
-    weatherChart: {
-      fontFamily: 'Arial, sans-serif',
-      backgroundColor: 'rgb(240, 240, 240)',
-      padding: '20px',
-      borderRadius: '10px',
-      boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-      width: '100%',
-    },
-    summaries: {
-      display: 'flex',
-      justifyContent: 'space-between',
-      marginTop: '20px',
-    },
-    dailySummary: {
-      width: '32%',
-      padding: '15px',
-      boxSizing: 'border-box' as const,
-      backgroundColor: 'white',
-      borderRadius: '8px',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-    },
-    summaryHeader: {
-      marginTop: 0,
-      color: 'rgb(255, 65, 54)',
-      fontSize: '1.2em',
-    },
-    toggleButton: {
-      marginBottom: '10px',
-      padding: '5px 10px',
-      fontSize: '14px',
-      cursor: 'pointer',
-    },
+  const getTemperatureColor = (temp: number): string => {
+    const celsiusTemp = isCelsius ? temp : (temp - 32) * 5/9;
+    const minTemp = 0;
+    const maxTemp = 40;
+    const normalizedTemp = Math.max(0, Math.min(1, (celsiusTemp - minTemp) / (maxTemp - minTemp)));
+    const r = Math.round(255 * normalizedTemp);
+    const b = Math.round(255 * (1 - normalizedTemp));
+    return `rgb(${r}, 0, ${b})`;
   };
 
   return (
-    <div style={styles.weatherChart}>
-      <button style={styles.toggleButton} onClick={() => setIsCelsius(!isCelsius)}>
-        Toggle to {isCelsius ? '°F' : '°C'}
-      </button>
-      <Plot
-        data={[
-          {
-            x: times,
-            y: temperatures.map(convertTemp),
-            type: 'scatter',
-            mode: 'lines+markers',
-            line: { 
-              color: 'rgba(100, 149, 237, 0.5)',
-              width: 2,
-              dash: 'dot',
+    <div className="weather-chart" ref={chartRef}>
+      <div className="plot-container">
+        <Plot
+          data={[
+            {
+              x: times,
+              y: temperatures.map(convertTemp),
+              type: 'scatter',
+              mode: 'lines+markers',
+              line: { 
+                color: 'rgba(100, 149, 237, 0.5)',
+                width: 1,
+                dash: 'dot',
+              },
+              marker: { 
+                color: temperatures.map(getTemperatureColor),
+                size: 4,
+                symbol: 'circle',
+                line: {
+                  color: 'white',
+                  width: 1
+                }
+              },
+              name: 'Temperature',
+              hoverinfo: 'text',
+              hovertext: temperatures.map((temp, i) => 
+                `${times[i]}<br>Temp: ${formatTemp(temp)}<br>` +
+                `${conditions[i]} ${getWeatherIcon(conditions[i])}<br>` +
+                `Wind: ${windSpeeds[i]} km/h ${getWindDirection(windDirections[i])}`
+              ),
             },
-            marker: { 
-              color: temperatures.map(t => `rgb(${255 - Math.round((t - 32) * 5/9 * 5)}, 0, ${Math.round((t - 32) * 5/9 * 5)})`),
-              size: 10,
-              symbol: 'circle',
-              line: {
-                color: 'white',
-                width: 2
-              }
+          ]}
+          layout={{
+            title: {
+              text: `Weather Forecast`,
+              font: { size: 14 }
             },
-            name: 'Temperature',
-            hoverinfo: 'text',
-            hovertext: temperatures.map((temp, i) => 
-              `${times[i]}<br>Temperature: ${formatTemp(temp)}<br>` +
-              `Condition: ${conditions[i]} ${getWeatherIcon(conditions[i])}<br>` +
-              `Wind: ${windSpeeds[i]} km/h ${getWindDirection(windDirections[i])}`
-            ),
-          },
-        ]}
-        layout={{
-          title: {
-            text: `Forecast - ${isCelsius ? '°C' : '°F'}`,
-            font: { size: 24, color: '#333' }
-          },
-          xaxis: {
-            title: 'Time',
-            tickangle: -45,
-            tickfont: { size: 12 },
-            tickvals: times,
-            ticktext: dayLabels,
-          },
-          yaxis: { 
-            title: `Temperature (${isCelsius ? '°C' : '°F'})`,
-            gridcolor: 'rgba(0,0,0,0.1)',
-          },
-          autosize: true,
-          margin: { l: 50, r: 50, b: 100, t: 80 },
-          paper_bgcolor: 'rgb(240, 240, 240)',
-          plot_bgcolor: 'rgb(250, 250, 250)',
-          showlegend: false,
-          hovermode: 'closest',
-          annotations: temperatures.map((temp, i) => ({
-            x: times[i],
-            y: convertTemp(temp),
-            text: getWeatherIcon(conditions[i]),
-            showarrow: false,
-            yshift: 20,
-            font: { size: 24 }
-          })),
-        }}
-        config={{ responsive: true }}
-        style={{width: "100%", height: "100%"}}
-      />
-      <div style={styles.summaries}>
+            xaxis: {
+              title: 'Time',
+              tickangle: -45,
+              tickfont: { size: 8 },
+              tickvals: times,
+              ticktext: dayLabels,
+            },
+            yaxis: { 
+              title: `Temp (${isCelsius ? '°C' : '°F'})`,
+              gridcolor: 'rgba(0,0,0,0.1)',
+              tickfont: { size: 8 },
+            },
+            width: chartDimensions.width,
+            height: chartDimensions.height,
+            autosize: true,
+            margin: { l: 30, r: 10, b: 30, t: 30 },
+            paper_bgcolor: 'rgb(240, 240, 240)',
+            plot_bgcolor: 'rgb(250, 250, 250)',
+            showlegend: false,
+            hovermode: 'closest',
+            annotations: temperatures.map((temp, i) => ({
+              x: times[i],
+              y: convertTemp(temp),
+              text: getWeatherIcon(conditions[i]),
+              showarrow: false,
+              yshift: 8,
+              font: { size: 10 }
+            })),
+          }}
+          config={{ responsive: true, displayModeBar: false }}
+        />
+      </div>
+      <div className="summaries">
         {limitedData.map((day, index) => (
-          <div key={index} style={styles.dailySummary}>
-            <h4 style={styles.summaryHeader}>{day.date}</h4>
+          <div key={index} className="daily-summary">
+            <h4 className="summary-header">{day.date}</h4>
             <p>{day.summary}</p>
           </div>
         ))}
       </div>
-      <div style={{marginTop: '20px'}}>
-        <h4>Legend:</h4>
-        <p>🌡️ Temperature: Cooler (Blue) to Warmer (Red)</p>
-        <p>☁️ Cloudy | 🌧️ Rainy | ☀️ Sunny | ⛅ Partly Cloudy | ⛈️ Stormy | ❄️ Snowy</p>
-        <p>💨 Wind direction is shown in cardinal directions (N, NE, E, SE, S, SW, W, NW)</p>
+      <div className="legend">
+        <p>🌡️ Temp: Blue (Cold) to Red (Hot) | ☁️ Cloudy | 🌧️ Rainy | ☀️ Sunny | ⛅ Partly Cloudy | ⛈️ Stormy | ❄️ Snowy | 💨 Wind: N, NE, E, SE, S, SW, W, NW</p>
       </div>
+      <button className="toggle-button" onClick={() => setIsCelsius(!isCelsius)}>
+        {isCelsius ? '°F' : '°C'}
+      </button>
     </div>
   );
 };
