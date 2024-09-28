@@ -1,7 +1,20 @@
 from datetime import datetime, timedelta
 
+def get_time_of_day(hour):
+    """
+    Determine time of day from raw datetime
+    """
+    if 5 <= hour < 12:
+        time_of_day = "am"
+    elif 12 <= hour < 18:
+        time_of_day = "pm"
+    else:
+        time_of_day = "night"
+    return time_of_day
+
 def process_nws_data(raw_data):
     processed_data = {
+        "name": "TO ADD: Mt Name",
         "summary1_3": "Weather summary for days 1-3",
         "summary4_6": "Weather summary for days 4-6",
         "days": []
@@ -24,14 +37,7 @@ def process_nws_data(raw_data):
                 "am": None, "pm": None, "night": None
             }
         
-        # Determine time of day
-        hour = period_time.hour
-        if 5 <= hour < 12:
-            time_of_day = "am"
-        elif 12 <= hour < 18:
-            time_of_day = "pm"
-        else:
-            time_of_day = "night"
+        time_of_day = get_time_of_day(period_time.hour)
         
         # If data is missing, use the previous period's data
         if previous_period and (period_time - datetime.fromisoformat(previous_period['startTime'])) > timedelta(hours=1):
