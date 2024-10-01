@@ -1,9 +1,9 @@
 # main.py
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-
-from nws_client import fetch_nws_data
-from processor import process_nws_data
+from nws_client import NWSClient
+from weather_processor import WeatherProcessor
+from gps_converter import get_gps_coordinates
 
 app = FastAPI()
 
@@ -18,9 +18,22 @@ app.add_middleware(
 
 @app.get("/temperature/{lat}/{lon}")
 async def get_weather(lat: float, lon: float, mock = True):
-    raw_data = fetch_nws_data(lat, lon, mock=mock)
-    processed_data = process_nws_data(raw_data)
-    return processed_data
+    nws_client = NWSClient()
+    weather_processor = WeatherProcessor()
+    raw_data = nws_client.get_weather_data(lat, lon)
+    processed_data = weather_processor.process_nws_data(raw_data)
+    if processed_data:
+        return processed_data
+    else:
+        raise HTTPException(status_code=404, detail="Failed to fetch weather data")
+
+@app.get("/gps_coordinates/{name}")
+async def get_coordinates(name: str):
+    coordinates = get_gps_coordinates(name)
+    if coordinates:
+        return coordinates
+    else:
+        raise HTTPException(status_code=404, detail="Mountain peak not found")
 
 if __name__ == "__main__":
     import uvicorn
