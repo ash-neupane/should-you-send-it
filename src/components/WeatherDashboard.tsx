@@ -3,40 +3,15 @@ import WeatherChart from './WeatherChart';
 import LocationSearch from './LocationSearch';
 import { fetchWeatherData } from '../api/WeatherApi';
 import '../styles/WeatherDashboard.css'; // Import the CSS file
-
-interface Location {
-  lat: number;
-  lon: number;
-}
-
-interface WeatherPeriod {
-  condition: string;
-  wind: { speed: number; direction: number };
-  temp: number;
-}
-
-interface DayData {
-  date: string;
-  summary: string;
-  am: WeatherPeriod | null;
-  pm: WeatherPeriod | null;
-  night: WeatherPeriod | null;
-}
-
-interface RawDayData {
-  date: string;
-  am: WeatherPeriod | null;
-  pm: WeatherPeriod | null;
-  night: WeatherPeriod | null;
-}
-
-interface WeatherData {
-  days: DayData[];
-}
+import {Location, WeatherPeriod, DayData, RawDayData, WeatherData} from "../types/types"
 
 const WeatherDashboard: React.FC = () => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [location, setLocation] = useState<Location>({ lat: 40.7128, lon: -74.0060 }); // Default to New York City
+  const [location, setLocation] = useState<Location>({
+      lat: 40.7128, 
+      lon: -74.0060,
+      displayName: 'New York City' 
+  }); 
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
