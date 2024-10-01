@@ -1,51 +1,49 @@
 import requests
 import json
-from fastapi import HTTPException
-from constants import NWS_API_BASE_URL
+from redis_config import default_redis_client
+import logging
 
 class NWSClient:
     def __init__(self):
-        self.base_url = NWS_API_BASE_URL
+        self.base_url = "https://api.weather.gov"
         self.headers = {"User-Agent": "(ashish-testing, contact: neupane.ashish@outlook.com)"}
+        self.logger = logging.getLogger("weather-backend").getChild("nws-client")
+        self.expiry_sec = 1 * 24 * 60 * 60
 
-    def get_weather_data(self, lat: float, lon: float, mock: bool = False):
-        if mock:
-            return self._get_mock_weather_data(lat, lon)
-        return self._fetch_nws_data(lat, lon)
-
-    def _get_mock_weather_data(self, lat: float, lon: float):
-        ny_data_file = "ny_mock_data.json"
-        ny_lat, ny_lon = 40.7128, -74.0060
-        rainier_data_file = "rainier_mock_data.json"
-        rainier_lat, rainier_lon = 46.8523, -121.7603
-
-        if abs(lat - ny_lat) < 1e-3 and abs(lon - ny_lon) < 1e-3:
-            data_file = ny_data_file
-        elif abs(lat - rainier_lat) < 1e-3 and abs(lon - rainier_lon) < 1e-3:
-            data_file = rainier_data_file
-        else:
-            return self._fetch_nws_data(lat, lon)
-
-        with open(data_file, "r") as file:
-            return json.load(file)
+    def get_weather_data(self, lat: float, lon: float):
+        cache_key = f"weather:{lat:.4f}_{lon:.4f}"
+        if default_redis_client:
+            self.logger.info("Looking for cached data...")
+            cached_data = default_redis_client.get_cache(cache_key)
+            if cached_data:
+                self.logger.info("Found cache, loading...")
+                return json.loads(cached_data)
+        
+        self.logger.info("Making external API call...")
+        result = self._fetch_nws_data(lat, lon)
+        default_redis_client.set_cache(cache_key, json.dumps(result), expiry=self.expiry_sec)
+        return result
 
     def _fetch_nws_data(self, lat: float, lon: float):
-        points_url = f"{self.base_url}/points/{lat},{lon}"
-        
-        response = requests.get(points_url, headers=self.headers)
-        if response.status_code != 200:
-            raise HTTPException(status_code=response.status_code, detail="Failed to fetch NWS data")
-        
-        data = response.json()
-        forecast_url = data['properties']['forecast']
-        
-        forecast_response = requests.get(forecast_url, headers=self.headers)
-        if forecast_response.status_code != 200:
-            raise HTTPException(status_code=forecast_response.status_code, detail="Failed to fetch forecast data")
-        
-        return forecast_response.json()
-    
+        try:
+            points_url = f"{self.base_url}/points/{lat},{lon}"
+            response = requests.get(points_url, headers=self.headers)
+            response.raise_for_status()  # This will raise an HTTPError for bad responses
+            data = response.json()
+            forecast_url = data['properties']['forecast']
+            forecast_response = requests.get(forecast_url, headers=self.headers)
+            forecast_response.raise_for_status()            
+            forecast_data = forecast_response.json()                        
+            return forecast_data
+        except requests.RequestException as e:
+            self.logger.error(f"Error fetching NWS data: {str(e)}")
+            return None
+
 if __name__ == "__main__":
+    logging.root.setLevel(logging.INFO)
     client = NWSClient()
-    response = client.get_weather_data(40.7128, -74.0060, mock=True)
-    print(response)
+    try:
+        response = client.get_weather_data(40.7128, -74.0060)
+        #print(json.dumps(response, indent=2))
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")

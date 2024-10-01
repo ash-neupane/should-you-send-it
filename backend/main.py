@@ -2,6 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from nws_client import NWSClient
+from osm_client import OSMClient
 from weather_processor import WeatherProcessor
 from gps_converter import get_gps_coordinates
 
@@ -17,7 +18,7 @@ app.add_middleware(
 )
 
 @app.get("/temperature/{lat}/{lon}")
-async def get_weather(lat: float, lon: float, mock = True):
+async def get_weather(lat: float, lon: float):
     nws_client = NWSClient()
     weather_processor = WeatherProcessor()
     raw_data = nws_client.get_weather_data(lat, lon)
@@ -29,11 +30,12 @@ async def get_weather(lat: float, lon: float, mock = True):
 
 @app.get("/gps_coordinates/{name}")
 async def get_coordinates(name: str):
-    coordinates = get_gps_coordinates(name)
+    osm_client = OSMClient()
+    coordinates = osm_client.get_mountain_peak_coordinates(name)
     if coordinates:
         return coordinates
     else:
-        raise HTTPException(status_code=404, detail="Mountain peak not found")
+        raise HTTPException(status_code=404, detail=f"{name} not found")
 
 if __name__ == "__main__":
     import uvicorn
