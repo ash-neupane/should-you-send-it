@@ -7,7 +7,6 @@ export const fetchLocationCoordinates = async (query: string): Promise<Location>
         console.log("Failed to get GPS coordinates: ", response.status, response.statusText)
         throw new Error('Failed to fetch location coordinates');
     }
-    const data = await response.json();
     console.log("Search query:", query);
     console.log("Result:", data);
     console.groupEnd();

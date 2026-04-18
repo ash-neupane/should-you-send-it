@@ -3,12 +3,12 @@ from typing import Optional
 
 class RedisClient:
     def __init__(self, host: str = 'localhost', port: int = 6379, db: int = 0):
+        self.logger = logging.getLogger("weather-backend").getChild("redis-client")
         self.redis_client = None
         self.host = host
         self.port = port
         self.db = db
         self.connect()
-        self.logger = logging.getLogger("weather-backend").getChild("redis-client")
 
     def is_init(self):
         return self.redis_client is not None
@@ -17,11 +17,11 @@ class RedisClient:
         try:
             self.redis_client = redis.Redis(host=self.host, port=self.port, db=self.db, decode_responses=True)
             self.redis_client.ping()
-            self.logger .info("Successfully connected to Redis")
+            self.logger.info("Successfully connected to Redis")
         except redis.ConnectionError as e:
-            self.logger .error(f"Could not connect to Redis: {str(e)}")
-            self.logger .error("Please ensure Redis is installed and running.")
-            self.logger .error("You can start Redis using 'redis-server' command or appropriate service manager.")
+            self.logger.error(f"Could not connect to Redis: {str(e)}")
+            self.logger.error("Please ensure Redis is installed and running.")
+            self.logger.error("You can start Redis using 'redis-server' command or appropriate service manager.")
             self.redis_client = None
 
     def set_cache(self, key: str, value: str, expiry: Optional[int] = None) -> None:
@@ -29,18 +29,18 @@ class RedisClient:
             try:
                 self.redis_client.set(key, value, ex=expiry)
             except redis.RedisError as e:
-                self.logger .error(f"Error setting cache: {str(e)}")
+                self.logger.error(f"Error setting cache: {str(e)}")
         else:
-            self.logger .warning("Redis client is not available. Cache operation skipped.")
+            self.logger.warning("Redis client is not available. Cache operation skipped.")
 
     def get_cache(self, key: str) -> Optional[str]:
         if self.redis_client:
             try:
                 return self.redis_client.get(key)
             except redis.RedisError as e:
-                self.logger .error(f"Error getting cache: {str(e)}")
+                self.logger.error(f"Error getting cache: {str(e)}")
         else:
-            self.logger .warning("Redis client is not available. Cache operation skipped.")
+            self.logger.warning("Redis client is not available. Cache operation skipped.")
         return None
 
     def delete_cache(self, key: str) -> None:
@@ -48,9 +48,9 @@ class RedisClient:
             try:
                 self.redis_client.delete(key)
             except redis.RedisError as e:
-                self.logger .error(f"Error deleting cache: {str(e)}")
+                self.logger.error(f"Error deleting cache: {str(e)}")
         else:
-            self.logger .warning("Redis client is not available. Cache operation skipped.")
+            self.logger.warning("Redis client is not available. Cache operation skipped.")
 
 def view_redis_cache():
     r = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)

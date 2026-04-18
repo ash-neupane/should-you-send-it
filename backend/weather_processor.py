@@ -88,6 +88,6 @@ if __name__ == "__main__":
     processor = WeatherProcessor()
     from nws_client import NWSClient
     client = NWSClient()
-    data = client.get_weather_data(46.8523, -121.7603, mock=True)
+    data = client.get_weather_data(46.8523, -121.7603)
     forecast = processor.process_nws_data(data)
     print(forecast)

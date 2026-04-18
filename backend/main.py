@@ -1,10 +1,8 @@
-# main.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from nws_client import NWSClient
 from osm_client import OSMClient
 from weather_processor import WeatherProcessor
-from gps_converter import get_gps_coordinates
 
 app = FastAPI()
 
