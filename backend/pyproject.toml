@@ -1,0 +1,11 @@
+[project]
+name = "should-you-send-it-backend"
+version = "0.1.0"
+description = "Weather backend for should-you-send-it"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110",
+    "redis>=5.0",
+    "requests>=2.31",
+    "uvicorn>=0.27",
+]
